@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+
+from argparse import ArgumentParser
+import numpy as np
+from stl import mesh
+import itertools
+import png
+import sys
+
+p = ArgumentParser(prog='Bump 2 stl',description='Converrt png bump map (intensity of pixel means high) to the stl mesh file.')
+
+
+
+p.add_argument('input', help='Input png file')
+p.add_argument('output', help='Output stl file')
+p.add_argument('-H','--high', help='Z coordinate of the maximum', default=1,type=float)
+p.add_argument('-S','--size', help='XY coordinate maximum', default=10,type=float)
+
+args = p.parse_args()
+
+print(" Reading image...",end='\r',file=sys.stderr)
+sys.stdout.flush()
+reader = png.Reader(args.input)
+pngdata = reader.read()
+img = np.vstack(list(map(np.uint16, pngdata[2])))
+points = []
+print("Reading image...done",file=sys.stderr)
+sys.stdout.flush()
+
+
+print(" Preparing vertices...",end='\r',file=sys.stderr)
+sys.stdout.flush()
+vertices = []
+for i in range(0,img.shape[0]):
+    for j in range(0,img.shape[1]):
+        v = img[i,j]    
+        vertices.append([args.size*i/max(img.shape[0],img.shape[1]),args.size*j/max(img.shape[0],img.shape[1]),v])
+vertices = np.array(vertices).astype(np.float64)
+vertices[:,2] -= np.min(vertices[:,2])
+if np.max(vertices) > 0:	
+	vertices[:,2] /= np.max(vertices[:,2])
+	vertices[:,2] *= args.high
+vertices[:,0] -= np.max(vertices[:,0]/2)
+vertices[:,1] -= np.max(vertices[:,1]/2)
+print("Preparing vertices...done",file=sys.stderr)
+sys.stdout.flush()
+
+print(" Preparing faces...",end='\r',file=sys.stderr)
+sys.stdout.flush()
+faces = []            
+for i in range(1,img.shape[0]):
+    for j in range(1,img.shape[1]):
+        faces.append([i*img.shape[1]+j,(i-1)*img.shape[1]+j,(i-1)*img.shape[1]+j-1][::-1])
+        faces.append([i*img.shape[1]+j,(i-1)*img.shape[1]+j-1,i*img.shape[1]+j-1][::-1])
+faces = np.array(faces)
+print("Preparing faces...done",file=sys.stderr)
+sys.stdout.flush()
+            
+
+	
+
+print(" Writing stl...",end='\r',file=sys.stderr)
+sys.stdout.flush()
+output_stl = mesh.Mesh(np.zeros(faces.shape[0], dtype=mesh.Mesh.dtype))
+for i, f in enumerate(faces):
+    for j in range(3):
+        output_stl.vectors[i][j] = vertices[f[j],:]
+
+output_stl.save(args.output)
+print("Writing stl...done",file=sys.stderr)
+sys.stdout.flush()
