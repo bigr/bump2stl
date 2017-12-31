@@ -7,7 +7,7 @@ import itertools
 import png
 import sys
 
-p = ArgumentParser(prog='Bump 2 stl',description='Converrt png bump map (intensity of pixel means high) to the stl mesh file.')
+p = ArgumentParser(prog='bump2stl',description='Converrt png bump map (intensity of pixel means high) to the stl mesh file.')
 
 
 
